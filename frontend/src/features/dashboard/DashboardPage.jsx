@@ -5,6 +5,7 @@ import StatCard from "./components/StatCard";
 import TodayTasks from "./components/TodayTasks";
 import UpcomingDeadlines from "./components/UpcomingDeadlines";
 import { dashboardStats } from "./dashboardData";
+import StudyProgressChart from "./components/StudyProgressChart";
 
 export default function DashboardPage() {
   return (
@@ -58,6 +59,15 @@ export default function DashboardPage() {
           <UpcomingDeadlines />
         </Grid>
       </Grid>
+      <Grid
+  container
+  spacing={3}
+  sx={{ mt: 3 }}
+>
+  <Grid size={{ xs: 12 }}>
+    <StudyProgressChart />
+  </Grid>
+</Grid>
     </Box>
   );
 }
