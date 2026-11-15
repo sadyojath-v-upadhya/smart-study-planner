@@ -5,15 +5,16 @@ import {
   Grid,
   Typography,
 } from "@mui/material";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import AddSubjectDialog from "./components/AddSubjectDialog";
 import DeleteSubjectDialog from "./components/DeleteSubjectDialog";
 import SubjectCard from "./components/SubjectCard";
-import { subjects as initialSubjects } from "./subjectsData";
 
 export default function SubjectsPage() {
-  const [subjects, setSubjects] = useState(initialSubjects);
+  const API_URL = import.meta.env.VITE_API_URL;
+
+  const [subjects, setSubjects] = useState([]);
 
   const [dialogOpen, setDialogOpen] = useState(false);
 
@@ -21,70 +22,159 @@ export default function SubjectsPage() {
 
   const [deletingSubject, setDeletingSubject] = useState(null);
 
-  const handleAddSubject = (data) => {
-    const newSubject = {
-      id: Date.now(),
-      name: data.name,
-      description: data.description,
-      progress: 0,
-      topicCount: 0,
-    };
+  // Fetch subjects from backend
+  const fetchSubjects = async () => {
+    try {
+      const response = await fetch(
+        `${API_URL}/api/subjects`
+      );
 
-    setSubjects((currentSubjects) => [
-      ...currentSubjects,
-      newSubject,
-    ]);
+      if (!response.ok) {
+        throw new Error("Failed to fetch subjects");
+      }
+
+      const data = await response.json();
+
+      setSubjects(data);
+    } catch (error) {
+      console.error("Error fetching subjects:", error);
+    }
   };
 
-  const handleEditSubject = (subjectId, data) => {
-    setSubjects((currentSubjects) =>
-      currentSubjects.map((subject) =>
-        subject.id === subjectId
-          ? {
-              ...subject,
-              name: data.name,
-              description: data.description,
-            }
-          : subject
-      )
-    );
+  // Fetch subjects when page loads
+  useEffect(() => {
+    fetchSubjects();
+  }, [API_URL]);
+
+  // Add subject
+  const handleAddSubject = async (data) => {
+    try {
+      const response = await fetch(
+        `${API_URL}/api/subjects`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            name: data.name,
+            description: data.description,
+            progress: 0,
+          }),
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error("Failed to create subject");
+      }
+
+      await response.json();
+
+      // Fetch again so topic_count and progress
+      // come from the database
+      await fetchSubjects();
+
+      handleCloseDialog();
+    } catch (error) {
+      console.error("Error creating subject:", error);
+    }
   };
 
-  const handleDeleteSubject = () => {
-    setSubjects((currentSubjects) =>
-      currentSubjects.filter(
-        (subject) => subject.id !== deletingSubject.id
-      )
-    );
+  // Edit subject
+  const handleEditSubject = async (subjectId, data) => {
+    try {
+      const response = await fetch(
+        `${API_URL}/api/subjects/${subjectId}`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            name: data.name,
+            description: data.description,
+          }),
+        }
+      );
 
-    setDeletingSubject(null);
+      if (!response.ok) {
+        throw new Error("Failed to update subject");
+      }
+
+      await response.json();
+
+      // Fetch again so we get the calculated
+      // progress and topic count
+      await fetchSubjects();
+
+      handleCloseDialog();
+    } catch (error) {
+      console.error("Error updating subject:", error);
+    }
   };
 
+  // Delete subject
+  const handleDeleteSubject = async () => {
+    if (!deletingSubject) {
+      return;
+    }
+
+    try {
+      const response = await fetch(
+        `${API_URL}/api/subjects/${deletingSubject.id}`,
+        {
+          method: "DELETE",
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error("Failed to delete subject");
+      }
+
+      await response.json();
+
+      // Refresh subjects from database
+      await fetchSubjects();
+
+      setDeletingSubject(null);
+    } catch (error) {
+      console.error("Error deleting subject:", error);
+    }
+  };
+
+  // Open Add dialog
   const handleOpenAddDialog = () => {
     setEditingSubject(null);
     setDialogOpen(true);
   };
 
+  // Open Edit dialog
   const handleOpenEditDialog = (subject) => {
     setEditingSubject(subject);
     setDialogOpen(true);
   };
 
+  // Close Add/Edit dialog
   const handleCloseDialog = () => {
     setDialogOpen(false);
     setEditingSubject(null);
   };
 
-  const handleSubmitSubject = (data) => {
-    if (editingSubject) {
-      handleEditSubject(editingSubject.id, data);
-    } else {
-      handleAddSubject(data);
-    }
-  };
+  // Decide whether Add or Edit
+  const handleSubmitSubject = async (data) => {
+  if (editingSubject) {
+    await handleEditSubject(
+      editingSubject.id,
+      data
+    );
+  } else {
+    await handleAddSubject(data);
+  }
+};
 
   return (
     <Box>
+      {/* Page Header */}
       <Box
         sx={{
           display: "flex",
@@ -95,7 +185,10 @@ export default function SubjectsPage() {
         }}
       >
         <Box>
-          <Typography variant="h4" component="h1">
+          <Typography
+            variant="h4"
+            component="h1"
+          >
             My Subjects
           </Typography>
 
@@ -116,6 +209,7 @@ export default function SubjectsPage() {
         </Button>
       </Box>
 
+      {/* Subject Cards */}
       <Grid container spacing={3}>
         {subjects.map((subject) => (
           <Grid
@@ -129,15 +223,22 @@ export default function SubjectsPage() {
             <SubjectCard
               name={subject.name}
               description={subject.description}
-              progress={subject.progress}
-              topicCount={subject.topicCount}
-              onEdit={() => handleOpenEditDialog(subject)}
-              onDelete={() => setDeletingSubject(subject)}
+              progress={Number(subject.progress)}
+              topicCount={Number(
+                subject.topic_count
+              )}
+              onEdit={() =>
+                handleOpenEditDialog(subject)
+              }
+              onDelete={() =>
+                setDeletingSubject(subject)
+              }
             />
           </Grid>
         ))}
       </Grid>
 
+      {/* Add / Edit Dialog */}
       <AddSubjectDialog
         open={dialogOpen}
         onClose={handleCloseDialog}
@@ -145,10 +246,13 @@ export default function SubjectsPage() {
         editingSubject={editingSubject}
       />
 
+      {/* Delete Dialog */}
       <DeleteSubjectDialog
         open={Boolean(deletingSubject)}
         subject={deletingSubject}
-        onClose={() => setDeletingSubject(null)}
+        onClose={() =>
+          setDeletingSubject(null)
+        }
         onConfirm={handleDeleteSubject}
       />
     </Box>

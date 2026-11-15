@@ -42,11 +42,8 @@ export default function AddSubjectDialog({
     }
   }, [editingSubject, reset]);
 
-  const submitForm = (data) => {
-    onAdd(data);
-
-    reset();
-    onClose();
+  const submitForm = async (data) => {
+    await onAdd(data);
   };
 
   const handleClose = () => {
@@ -62,7 +59,9 @@ export default function AddSubjectDialog({
       maxWidth="sm"
     >
       <DialogTitle>
-        {editingSubject ? "Edit Subject" : "Add Subject"}
+        {editingSubject
+          ? "Edit Subject"
+          : "Add Subject"}
       </DialogTitle>
 
       <DialogContent>
@@ -125,7 +124,9 @@ export default function AddSubjectDialog({
           variant="contained"
           onClick={handleSubmit(submitForm)}
         >
-          {editingSubject ? "Save Changes" : "Add Subject"}
+          {editingSubject
+            ? "Save Changes"
+            : "Add Subject"}
         </Button>
       </DialogActions>
     </Dialog>

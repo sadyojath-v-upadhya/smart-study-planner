@@ -86,7 +86,7 @@ const addSubject = async (req, res) => {
 const updateSubjectData = async (req, res) => {
   try {
     const { id } = req.params;
-    const { name, description, progress } = req.body;
+    const { name, description } = req.body;
 
     if (
       typeof name !== "string" ||
@@ -99,21 +99,10 @@ const updateSubjectData = async (req, res) => {
       });
     }
 
-    if (
-      !Number.isInteger(progress) ||
-      progress < 0 ||
-      progress > 100
-    ) {
-      return res.status(400).json({
-        message: "Progress must be an integer between 0 and 100",
-      });
-    }
-
     const subject = await updateSubject(
       id,
       name.trim(),
-      description.trim(),
-      progress
+      description.trim()
     );
 
     if (!subject) {

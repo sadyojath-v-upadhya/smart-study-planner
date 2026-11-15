@@ -1,9 +1,26 @@
 const pool = require("../config/database");
 
 const getAllSubjects = async () => {
-  const result = await pool.query(
-    "SELECT * FROM subjects ORDER BY id ASC"
-  );
+  const result = await pool.query(`
+    SELECT
+      s.id,
+      s.name,
+      s.description,
+      COUNT(t.id) AS topic_count,
+      COUNT(t.id) FILTER (WHERE t.completed = true) AS completed_topics,
+      CASE
+        WHEN COUNT(t.id) = 0 THEN 0
+        ELSE ROUND(
+          COUNT(t.id) FILTER (WHERE t.completed = true) * 100.0
+          / COUNT(t.id)
+        )
+      END AS progress
+    FROM subjects s
+    LEFT JOIN topics t
+      ON s.id = t.subject_id
+    GROUP BY s.id, s.name, s.description
+    ORDER BY s.id ASC
+  `);
 
   return result.rows;
 };
@@ -30,19 +47,18 @@ const createSubject = async (name, description, progress = 0) => {
   return result.rows[0];
 };
 
-const updateSubject = async (id, name, description, progress) => {
+const updateSubject = async (id, name, description) => {
   const result = await pool.query(
     `
       UPDATE subjects
       SET
         name = $1,
         description = $2,
-        progress = $3,
         updated_at = CURRENT_TIMESTAMP
-      WHERE id = $4
+      WHERE id = $3
       RETURNING *
     `,
-    [name, description, progress, id]
+    [name, description, id]
   );
 
   return result.rows[0];

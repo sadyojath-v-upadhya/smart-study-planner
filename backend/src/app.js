@@ -2,6 +2,7 @@ const express = require("express");
 const cors = require("cors");
 
 const subjectRoutes = require("./routes/subjectRoutes");
+const topicRoutes = require("./routes/topicRoutes");
 
 const app = express();
 
@@ -9,6 +10,7 @@ app.use(cors());
 app.use(express.json());
 
 app.use("/api/subjects", subjectRoutes);
+app.use("/api/topics", topicRoutes);
 
 app.get("/", (req, res) => {
   res.send("Smart Study Planner backend is running!");
