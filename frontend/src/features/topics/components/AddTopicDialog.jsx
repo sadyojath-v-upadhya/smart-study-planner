@@ -4,6 +4,10 @@ import {
   DialogActions,
   DialogContent,
   DialogTitle,
+  FormControl,
+  InputLabel,
+  MenuItem,
+  Select,
   TextField,
 } from "@mui/material";
 import { useEffect, useState } from "react";
@@ -15,11 +19,13 @@ export default function AddTopicDialog({
 }) {
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
+  const [difficulty, setDifficulty] = useState("Medium");
 
   useEffect(() => {
     if (open) {
       setName("");
       setDescription("");
+      setDifficulty("Medium");
     }
   }, [open]);
 
@@ -31,6 +37,7 @@ export default function AddTopicDialog({
     onAdd({
       name: name.trim(),
       description: description.trim(),
+      difficulty,
     });
   };
 
@@ -65,6 +72,20 @@ export default function AddTopicDialog({
           multiline
           rows={3}
         />
+
+        <FormControl fullWidth margin="normal">
+          <InputLabel id="add-topic-difficulty-label">Difficulty</InputLabel>
+          <Select
+            labelId="add-topic-difficulty-label"
+            value={difficulty}
+            label="Difficulty"
+            onChange={(event) => setDifficulty(event.target.value)}
+          >
+            <MenuItem value="Easy">Easy</MenuItem>
+            <MenuItem value="Medium">Medium</MenuItem>
+            <MenuItem value="Hard">Hard</MenuItem>
+          </Select>
+        </FormControl>
       </DialogContent>
 
       <DialogActions>

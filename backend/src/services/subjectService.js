@@ -27,21 +27,40 @@ const getAllSubjects = async () => {
 
 const getSubjectById = async (id) => {
   const result = await pool.query(
-    "SELECT * FROM subjects WHERE id = $1",
+    `
+      SELECT
+        s.id,
+        s.name,
+        s.description,
+        COUNT(t.id) AS topic_count,
+        COUNT(t.id) FILTER (WHERE t.completed = true) AS completed_topics,
+        CASE
+          WHEN COUNT(t.id) = 0 THEN 0
+          ELSE ROUND(
+            COUNT(t.id) FILTER (WHERE t.completed = true) * 100.0
+            / COUNT(t.id)
+          )
+        END AS progress
+      FROM subjects s
+      LEFT JOIN topics t
+        ON s.id = t.subject_id
+      WHERE s.id = $1
+      GROUP BY s.id, s.name, s.description
+    `,
     [id]
   );
 
   return result.rows[0];
 };
 
-const createSubject = async (name, description, progress = 0) => {
+const createSubject = async (name, description) => {
   const result = await pool.query(
     `
-      INSERT INTO subjects (name, description, progress)
-      VALUES ($1, $2, $3)
+      INSERT INTO subjects (name, description)
+      VALUES ($1, $2)
       RETURNING *
     `,
-    [name, description, progress]
+    [name, description]
   );
 
   return result.rows[0];

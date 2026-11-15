@@ -4,8 +4,10 @@ const {
   getTopicById,
   createTopic,
   updateTopic,
-  deleteTopic
+  deleteTopic,
 } = require("../services/topicService");
+
+const VALID_DIFFICULTIES = ["Easy", "Medium", "Hard"];
 
 const getTopics = async (req, res) => {
   try {
@@ -61,7 +63,7 @@ const getTopic = async (req, res) => {
 
 const addTopic = async (req, res) => {
   try {
-    const { subjectId, name, description } = req.body;
+    const { subjectId, name, description, difficulty = "Medium" } = req.body;
 
     if (!subjectId || !name?.trim() || !description?.trim()) {
       return res.status(400).json({
@@ -69,10 +71,17 @@ const addTopic = async (req, res) => {
       });
     }
 
+    if (!VALID_DIFFICULTIES.includes(difficulty)) {
+      return res.status(400).json({
+        message: "Difficulty must be one of: Easy, Medium, Hard",
+      });
+    }
+
     const topic = await createTopic(
       subjectId,
       name.trim(),
-      description.trim()
+      description.trim(),
+      difficulty
     );
 
     res.status(201).json(topic);
@@ -88,7 +97,7 @@ const addTopic = async (req, res) => {
 const updateTopicData = async (req, res) => {
   try {
     const { id } = req.params;
-    const { name, description, completed } = req.body;
+    const { name, description, completed, difficulty = "Medium" } = req.body;
 
     if (
       !name?.trim() ||
@@ -101,11 +110,18 @@ const updateTopicData = async (req, res) => {
       });
     }
 
+    if (!VALID_DIFFICULTIES.includes(difficulty)) {
+      return res.status(400).json({
+        message: "Difficulty must be one of: Easy, Medium, Hard",
+      });
+    }
+
     const topic = await updateTopic(
       id,
       name.trim(),
       description.trim(),
-      completed
+      completed,
+      difficulty
     );
 
     if (!topic) {

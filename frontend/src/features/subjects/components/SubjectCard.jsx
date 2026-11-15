@@ -12,12 +12,13 @@ export default function SubjectCard({
   description,
   progress,
   topicCount,
+  onViewTopics,
   onEdit,
   onDelete,
 }) {
   return (
-    <Card sx={{ height: "100%" }}>
-      <CardContent>
+    <Card sx={{ height: "100%", display: "flex", flexDirection: "column" }}>
+      <CardContent sx={{ flexGrow: 1, display: "flex", flexDirection: "column" }}>
         <Typography variant="h6" component="h2">
           {name}
         </Typography>
@@ -25,7 +26,7 @@ export default function SubjectCard({
         <Typography
           variant="body2"
           color="text.secondary"
-          sx={{ mt: 0.5 }}
+          sx={{ mt: 0.5, flexGrow: 1 }}
         >
           {description}
         </Typography>
@@ -61,7 +62,7 @@ export default function SubjectCard({
           color="text.secondary"
           sx={{ mt: 2 }}
         >
-          {topicCount} topics
+          {topicCount} {topicCount === 1 ? "topic" : "topics"}
         </Typography>
 
         <Box
@@ -69,8 +70,20 @@ export default function SubjectCard({
             display: "flex",
             gap: 1,
             mt: 2,
+            pt: 1,
+            borderTop: 1,
+            borderColor: "divider",
+            flexWrap: "wrap",
           }}
         >
+          <Button
+            variant="contained"
+            size="small"
+            onClick={onViewTopics}
+          >
+            View Topics
+          </Button>
+
           <Button
             variant="outlined"
             size="small"

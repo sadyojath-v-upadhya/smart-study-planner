@@ -44,7 +44,7 @@ const getSubject = async (req, res) => {
 
 const addSubject = async (req, res) => {
   try {
-    const { name, description, progress = 0 } = req.body;
+    const { name, description } = req.body;
 
     if (
       typeof name !== "string" ||
@@ -57,20 +57,9 @@ const addSubject = async (req, res) => {
       });
     }
 
-    if (
-      !Number.isInteger(progress) ||
-      progress < 0 ||
-      progress > 100
-    ) {
-      return res.status(400).json({
-        message: "Progress must be an integer between 0 and 100",
-      });
-    }
-
     const subject = await createSubject(
       name.trim(),
-      description.trim(),
-      progress
+      description.trim()
     );
 
     res.status(201).json(subject);

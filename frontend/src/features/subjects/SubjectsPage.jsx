@@ -6,6 +6,7 @@ import {
   Typography,
 } from "@mui/material";
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 import AddSubjectDialog from "./components/AddSubjectDialog";
 import DeleteSubjectDialog from "./components/DeleteSubjectDialog";
@@ -13,6 +14,7 @@ import SubjectCard from "./components/SubjectCard";
 
 export default function SubjectsPage() {
   const API_URL = import.meta.env.VITE_API_URL;
+  const navigate = useNavigate();
 
   const [subjects, setSubjects] = useState([]);
 
@@ -59,7 +61,6 @@ export default function SubjectsPage() {
           body: JSON.stringify({
             name: data.name,
             description: data.description,
-            progress: 0,
           }),
         }
       );
@@ -162,15 +163,15 @@ export default function SubjectsPage() {
 
   // Decide whether Add or Edit
   const handleSubmitSubject = async (data) => {
-  if (editingSubject) {
-    await handleEditSubject(
-      editingSubject.id,
-      data
-    );
-  } else {
-    await handleAddSubject(data);
-  }
-};
+    if (editingSubject) {
+      await handleEditSubject(
+        editingSubject.id,
+        data
+      );
+    } else {
+      await handleAddSubject(data);
+    }
+  };
 
   return (
     <Box>
@@ -227,6 +228,9 @@ export default function SubjectsPage() {
               topicCount={Number(
                 subject.topic_count
               )}
+              onViewTopics={() =>
+                navigate(`/subjects/${subject.id}/topics`)
+              }
               onEdit={() =>
                 handleOpenEditDialog(subject)
               }

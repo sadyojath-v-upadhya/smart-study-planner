@@ -13,6 +13,7 @@ CREATE TABLE topics (
     name VARCHAR(150) NOT NULL,
     description TEXT NOT NULL,
     completed BOOLEAN NOT NULL DEFAULT FALSE,
+    difficulty VARCHAR(20) NOT NULL DEFAULT 'Medium' CHECK (difficulty IN ('Easy', 'Medium', 'Hard')),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 

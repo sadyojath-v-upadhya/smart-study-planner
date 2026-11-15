@@ -4,6 +4,10 @@ import {
   DialogActions,
   DialogContent,
   DialogTitle,
+  FormControl,
+  InputLabel,
+  MenuItem,
+  Select,
   TextField,
 } from "@mui/material";
 import { useEffect, useState } from "react";
@@ -16,11 +20,13 @@ export default function EditTopicDialog({
 }) {
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
+  const [difficulty, setDifficulty] = useState("Medium");
 
   useEffect(() => {
     if (topic) {
       setName(topic.name);
       setDescription(topic.description);
+      setDifficulty(topic.difficulty || "Medium");
     }
   }, [topic]);
 
@@ -32,6 +38,7 @@ export default function EditTopicDialog({
     onUpdate({
       name: name.trim(),
       description: description.trim(),
+      difficulty,
     });
   };
 
@@ -66,6 +73,20 @@ export default function EditTopicDialog({
           multiline
           rows={3}
         />
+
+        <FormControl fullWidth margin="normal">
+          <InputLabel id="edit-topic-difficulty-label">Difficulty</InputLabel>
+          <Select
+            labelId="edit-topic-difficulty-label"
+            value={difficulty}
+            label="Difficulty"
+            onChange={(event) => setDifficulty(event.target.value)}
+          >
+            <MenuItem value="Easy">Easy</MenuItem>
+            <MenuItem value="Medium">Medium</MenuItem>
+            <MenuItem value="Hard">Hard</MenuItem>
+          </Select>
+        </FormControl>
       </DialogContent>
 
       <DialogActions>

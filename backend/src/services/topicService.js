@@ -26,14 +26,19 @@ const getTopicsBySubject = async (subjectId) => {
   return result.rows;
 };
 
-const createTopic = async (subjectId, name, description) => {
+const createTopic = async (
+  subjectId,
+  name,
+  description,
+  difficulty = "Medium"
+) => {
   const result = await pool.query(
     `
-      INSERT INTO topics (subject_id, name, description)
-      VALUES ($1, $2, $3)
+      INSERT INTO topics (subject_id, name, description, difficulty)
+      VALUES ($1, $2, $3, $4)
       RETURNING *
     `,
-    [subjectId, name, description]
+    [subjectId, name, description, difficulty]
   );
 
   return result.rows[0];
@@ -56,7 +61,8 @@ const updateTopic = async (
   id,
   name,
   description,
-  completed
+  completed,
+  difficulty = "Medium"
 ) => {
   const result = await pool.query(
     `
@@ -65,11 +71,12 @@ const updateTopic = async (
         name = $1,
         description = $2,
         completed = $3,
+        difficulty = $4,
         updated_at = CURRENT_TIMESTAMP
-      WHERE id = $4
+      WHERE id = $5
       RETURNING *
     `,
-    [name, description, completed, id]
+    [name, description, completed, difficulty, id]
   );
 
   return result.rows[0];
