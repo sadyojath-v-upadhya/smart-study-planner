@@ -1,6 +1,7 @@
 import { BrowserRouter, Route, Routes } from "react-router-dom";
 
 import { MainLayout } from "../components/layout";
+import AssignmentsPage from "../features/assignments/AssignmentsPage";
 import DashboardPage from "../features/dashboard/DashboardPage";
 import PlannerPage from "../features/planner/PlannerPage";
 import SubjectsPage from "../features/subjects/SubjectsPage";
@@ -18,6 +19,8 @@ export default function AppRoutes() {
             element={<TopicsPage />}
           />
           <Route path="/planner" element={<PlannerPage />} />
+          <Route path="/assignments" element={<AssignmentsPage />} />
+          <Route path="/tasks" element={<AssignmentsPage />} />
         </Route>
       </Routes>
     </BrowserRouter>

@@ -39,3 +39,37 @@ CREATE TABLE study_sessions (
         REFERENCES topics(id)
         ON DELETE CASCADE
 );
+
+CREATE TABLE assignments (
+    id SERIAL PRIMARY KEY,
+    subject_id INTEGER NOT NULL,
+    title VARCHAR(150) NOT NULL,
+    description TEXT,
+    due_date DATE NOT NULL,
+    priority VARCHAR(20) NOT NULL DEFAULT 'Medium' CHECK (priority IN ('Low', 'Medium', 'High')),
+    status VARCHAR(20) NOT NULL DEFAULT 'Pending' CHECK (status IN ('Pending', 'In Progress', 'Completed')),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT fk_assignments_subject
+        FOREIGN KEY (subject_id)
+        REFERENCES subjects(id)
+        ON DELETE CASCADE
+);
+
+CREATE TABLE exams (
+    id SERIAL PRIMARY KEY,
+    subject_id INTEGER NOT NULL,
+    title VARCHAR(150) NOT NULL,
+    exam_date DATE NOT NULL,
+    start_time TIME,
+    duration_minutes INTEGER CHECK (duration_minutes IS NULL OR duration_minutes > 0),
+    notes TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT fk_exams_subject
+        FOREIGN KEY (subject_id)
+        REFERENCES subjects(id)
+        ON DELETE CASCADE
+);
