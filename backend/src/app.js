@@ -3,6 +3,7 @@ const cors = require("cors");
 
 const subjectRoutes = require("./routes/subjectRoutes");
 const topicRoutes = require("./routes/topicRoutes");
+const studySessionRoutes = require("./routes/studySessionRoutes");
 
 const app = express();
 
@@ -11,6 +12,7 @@ app.use(express.json());
 
 app.use("/api/subjects", subjectRoutes);
 app.use("/api/topics", topicRoutes);
+app.use("/api/study-sessions", studySessionRoutes);
 
 app.get("/", (req, res) => {
   res.send("Smart Study Planner backend is running!");

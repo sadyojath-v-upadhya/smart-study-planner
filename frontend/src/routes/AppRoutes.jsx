@@ -2,6 +2,7 @@ import { BrowserRouter, Route, Routes } from "react-router-dom";
 
 import { MainLayout } from "../components/layout";
 import DashboardPage from "../features/dashboard/DashboardPage";
+import PlannerPage from "../features/planner/PlannerPage";
 import SubjectsPage from "../features/subjects/SubjectsPage";
 import TopicsPage from "../features/topics/TopicsPage";
 
@@ -16,6 +17,7 @@ export default function AppRoutes() {
             path="/subjects/:subjectId/topics"
             element={<TopicsPage />}
           />
+          <Route path="/planner" element={<PlannerPage />} />
         </Route>
       </Routes>
     </BrowserRouter>
