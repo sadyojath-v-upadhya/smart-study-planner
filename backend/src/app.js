@@ -8,6 +8,7 @@ const assignmentRoutes = require("./routes/assignmentRoutes");
 const examRoutes = require("./routes/examRoutes");
 const deadlineRoutes = require("./routes/deadlineRoutes");
 const analyticsRoutes = require("./routes/analyticsRoutes");
+const recommendationRoutes = require("./routes/recommendationRoutes");
 
 const app = express();
 
@@ -21,6 +22,7 @@ app.use("/api/assignments", assignmentRoutes);
 app.use("/api/exams", examRoutes);
 app.use("/api/deadlines", deadlineRoutes);
 app.use("/api/analytics", analyticsRoutes);
+app.use("/api/recommendations", recommendationRoutes);
 
 app.get("/", (req, res) => {
   res.send("Smart Study Planner backend is running!");

@@ -6,25 +6,30 @@ import {
 } from "@mui/icons-material";
 import { Box, Grid } from "@mui/material";
 import { useCallback, useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 import DashboardHeader from "./components/DashboardHeader";
 import StatCard from "./components/StatCard";
 import StudyProgressChart from "./components/StudyProgressChart";
+import StudyRecommendations from "./components/StudyRecommendations";
 import SubjectProgressChart from "./components/SubjectProgressChart";
 import TodayTasks from "./components/TodayTasks";
 import UpcomingDeadlines from "./components/UpcomingDeadlines";
 
 export default function DashboardPage() {
   const API_URL = import.meta.env.VITE_API_URL;
+  const navigate = useNavigate();
 
   const [analytics, setAnalytics] = useState(null);
   const [deadlines, setDeadlines] = useState([]);
+  const [recommendations, setRecommendations] = useState([]);
 
   const fetchDashboardData = useCallback(async () => {
     try {
-      const [analyticsRes, deadlinesRes] = await Promise.all([
+      const [analyticsRes, deadlinesRes, recsRes] = await Promise.all([
         fetch(`${API_URL}/api/analytics/dashboard`),
         fetch(`${API_URL}/api/deadlines/upcoming`),
+        fetch(`${API_URL}/api/recommendations?limit=4`),
       ]);
 
       if (analyticsRes.ok) {
@@ -35,6 +40,11 @@ export default function DashboardPage() {
       if (deadlinesRes.ok) {
         const deadlineData = await deadlinesRes.json();
         setDeadlines(deadlineData);
+      }
+
+      if (recsRes.ok) {
+        const recsData = await recsRes.json();
+        setRecommendations(recsData);
       }
     } catch (err) {
       console.error("Error fetching live dashboard analytics:", err);
@@ -91,6 +101,16 @@ export default function DashboardPage() {
           </Grid>
         ))}
       </Grid>
+
+      {/* Smart Recommendations Section */}
+      <Box sx={{ mt: 3 }}>
+        <StudyRecommendations
+          recommendations={recommendations}
+          onSchedule={(rec) =>
+            navigate("/planner", { state: { prefill: rec } })
+          }
+        />
+      </Box>
 
       {/* Charts Row: Study Hours Trend + Subject Progress */}
       <Grid container spacing={3} sx={{ mt: 3 }}>

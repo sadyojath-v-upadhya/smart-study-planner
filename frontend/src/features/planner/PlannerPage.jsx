@@ -20,6 +20,7 @@ import {
   Typography,
 } from "@mui/material";
 import { useCallback, useEffect, useState } from "react";
+import { useLocation } from "react-router-dom";
 import AddSessionDialog from "./components/AddSessionDialog";
 
 const getDifficultyColor = (difficulty) => {
@@ -57,10 +58,21 @@ const formatTime = (timeStr) => {
 
 export default function PlannerPage() {
   const API_URL = import.meta.env.VITE_API_URL;
+  const location = useLocation();
 
   const [sessions, setSessions] = useState([]);
   const [filter, setFilter] = useState("all");
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [prefillData, setPrefillData] = useState(null);
+
+  // Check if routed from Intelligent Recommendations with prefilled topic
+  useEffect(() => {
+    if (location.state?.prefill) {
+      setPrefillData(location.state.prefill);
+      setDialogOpen(true);
+      window.history.replaceState({}, document.title);
+    }
+  }, [location.state]);
 
   const fetchSessions = useCallback(async () => {
     try {
@@ -79,24 +91,22 @@ export default function PlannerPage() {
   }, [fetchSessions]);
 
   const handleAddSession = async (sessionData) => {
-    try {
-      const res = await fetch(`${API_URL}/api/study-sessions`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(sessionData),
-      });
+    const res = await fetch(`${API_URL}/api/study-sessions`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(sessionData),
+    });
 
-      if (!res.ok) {
-        throw new Error("Failed to create study session");
-      }
-
-      await fetchSessions();
-      setDialogOpen(false);
-    } catch (err) {
-      console.error("Error creating study session:", err);
+    if (!res.ok) {
+      const errData = await res.json().catch(() => ({}));
+      throw new Error(errData.message || "Failed to create study session");
     }
+
+    await fetchSessions();
+    setDialogOpen(false);
+    setPrefillData(null);
   };
 
   const handleToggleStatus = async (session) => {
@@ -181,7 +191,10 @@ export default function PlannerPage() {
         <Button
           variant="contained"
           startIcon={<Add />}
-          onClick={() => setDialogOpen(true)}
+          onClick={() => {
+            setPrefillData(null);
+            setDialogOpen(true);
+          }}
         >
           Schedule Session
         </Button>
@@ -233,7 +246,10 @@ export default function PlannerPage() {
           <Button
             variant="contained"
             startIcon={<Add />}
-            onClick={() => setDialogOpen(true)}
+            onClick={() => {
+              setPrefillData(null);
+              setDialogOpen(true);
+            }}
           >
             Schedule a Session
           </Button>
@@ -405,8 +421,12 @@ export default function PlannerPage() {
       {/* Add Session Dialog */}
       <AddSessionDialog
         open={dialogOpen}
-        onClose={() => setDialogOpen(false)}
+        onClose={() => {
+          setDialogOpen(false);
+          setPrefillData(null);
+        }}
         onAdd={handleAddSession}
+        prefill={prefillData}
       />
     </Box>
   );

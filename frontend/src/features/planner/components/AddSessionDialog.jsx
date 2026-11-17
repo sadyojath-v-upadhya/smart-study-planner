@@ -18,7 +18,12 @@ import { useEffect, useState } from "react";
 
 const DURATION_PRESETS = [30, 45, 60, 90, 120];
 
-export default function AddSessionDialog({ open, onClose, onAdd }) {
+export default function AddSessionDialog({
+  open,
+  onClose,
+  onAdd,
+  prefill = null,
+}) {
   const API_URL = import.meta.env.VITE_API_URL;
 
   const [subjects, setSubjects] = useState([]);
@@ -33,6 +38,7 @@ export default function AddSessionDialog({ open, onClose, onAdd }) {
   const [durationMinutes, setDurationMinutes] = useState(45);
   const [notes, setNotes] = useState("");
   const [error, setError] = useState("");
+  const [submitting, setSubmitting] = useState(false);
 
   // Fetch subjects when dialog opens
   useEffect(() => {
@@ -43,6 +49,9 @@ export default function AddSessionDialog({ open, onClose, onAdd }) {
           if (res.ok) {
             const data = await res.json();
             setSubjects(data);
+            if (prefill?.subjectId) {
+              setSubjectId(prefill.subjectId);
+            }
           }
         } catch (err) {
           console.error("Error fetching subjects for planner:", err);
@@ -50,16 +59,18 @@ export default function AddSessionDialog({ open, onClose, onAdd }) {
       };
 
       fetchSubjects();
-      setSubjectId("");
-      setTopicId("");
-      setTopics([]);
+      setSubjectId(prefill?.subjectId || "");
+      setTopicId(prefill?.topicId || "");
+      setDurationMinutes(prefill?.recommendedDuration || 45);
+      setNotes(
+        prefill?.primaryReason ? `Focus: ${prefill.primaryReason}` : ""
+      );
       setSessionDate(new Date().toISOString().split("T")[0]);
       setStartTime("16:00");
-      setDurationMinutes(45);
-      setNotes("");
       setError("");
+      setSubmitting(false);
     }
-  }, [open, API_URL]);
+  }, [open, prefill, API_URL]);
 
   // Fetch topics whenever selected subject changes
   useEffect(() => {
@@ -76,9 +87,16 @@ export default function AddSessionDialog({ open, onClose, onAdd }) {
           const data = await res.json();
           setTopics(data);
           if (data.length > 0) {
-            // Default to first pending topic if available
-            const pendingTopic = data.find((t) => !t.completed);
-            setTopicId(pendingTopic ? pendingTopic.id : data[0].id);
+            if (
+              prefill &&
+              prefill.topicId &&
+              Number(prefill.subjectId) === Number(subjectId)
+            ) {
+              setTopicId(prefill.topicId);
+            } else {
+              const pendingTopic = data.find((t) => !t.completed);
+              setTopicId(pendingTopic ? pendingTopic.id : data[0].id);
+            }
           } else {
             setTopicId("");
           }
@@ -89,9 +107,9 @@ export default function AddSessionDialog({ open, onClose, onAdd }) {
     };
 
     fetchTopics();
-  }, [subjectId, API_URL]);
+  }, [subjectId, prefill, API_URL]);
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!subjectId) {
       setError("Please select a subject.");
       return;
@@ -109,13 +127,21 @@ export default function AddSessionDialog({ open, onClose, onAdd }) {
       return;
     }
 
-    onAdd({
-      topicId: Number(topicId),
-      sessionDate,
-      startTime: startTime || null,
-      durationMinutes: Number(durationMinutes),
-      notes: notes.trim(),
-    });
+    try {
+      setSubmitting(true);
+      setError("");
+      await onAdd({
+        topicId: Number(topicId),
+        sessionDate,
+        startTime: startTime || null,
+        durationMinutes: Number(durationMinutes),
+        notes: notes.trim(),
+      });
+    } catch (err) {
+      setError(err.message || "Failed to schedule session");
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -235,9 +261,15 @@ export default function AddSessionDialog({ open, onClose, onAdd }) {
       </DialogContent>
 
       <DialogActions>
-        <Button onClick={onClose}>Cancel</Button>
-        <Button variant="contained" onClick={handleSubmit}>
-          Schedule Session
+        <Button onClick={onClose} disabled={submitting}>
+          Cancel
+        </Button>
+        <Button
+          variant="contained"
+          onClick={handleSubmit}
+          disabled={submitting}
+        >
+          {submitting ? "Scheduling..." : "Schedule Session"}
         </Button>
       </DialogActions>
     </Dialog>
