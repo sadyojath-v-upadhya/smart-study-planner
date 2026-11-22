@@ -1,31 +1,6 @@
 const pool = require("../config/database");
 
-const getAllSubjects = async () => {
-  const result = await pool.query(`
-    SELECT
-      s.id,
-      s.name,
-      s.description,
-      COUNT(t.id) AS topic_count,
-      COUNT(t.id) FILTER (WHERE t.completed = true) AS completed_topics,
-      CASE
-        WHEN COUNT(t.id) = 0 THEN 0
-        ELSE ROUND(
-          COUNT(t.id) FILTER (WHERE t.completed = true) * 100.0
-          / COUNT(t.id)
-        )
-      END AS progress
-    FROM subjects s
-    LEFT JOIN topics t
-      ON s.id = t.subject_id
-    GROUP BY s.id, s.name, s.description
-    ORDER BY s.id ASC
-  `);
-
-  return result.rows;
-};
-
-const getSubjectById = async (id) => {
+const getAllSubjects = async (userId) => {
   const result = await pool.query(
     `
       SELECT
@@ -44,29 +19,58 @@ const getSubjectById = async (id) => {
       FROM subjects s
       LEFT JOIN topics t
         ON s.id = t.subject_id
-      WHERE s.id = $1
+      WHERE s.user_id = $1
       GROUP BY s.id, s.name, s.description
+      ORDER BY s.id ASC
     `,
-    [id]
+    [userId]
   );
 
-  return result.rows[0];
+  return result.rows;
 };
 
-const createSubject = async (name, description) => {
+const getSubjectById = async (id, userId) => {
   const result = await pool.query(
     `
-      INSERT INTO subjects (name, description)
-      VALUES ($1, $2)
-      RETURNING *
+      SELECT
+        s.id,
+        s.name,
+        s.description,
+        COUNT(t.id) AS topic_count,
+        COUNT(t.id) FILTER (WHERE t.completed = true) AS completed_topics,
+        CASE
+          WHEN COUNT(t.id) = 0 THEN 0
+          ELSE ROUND(
+            COUNT(t.id) FILTER (WHERE t.completed = true) * 100.0
+            / COUNT(t.id)
+          )
+        END AS progress
+      FROM subjects s
+      LEFT JOIN topics t
+        ON s.id = t.subject_id
+      WHERE s.id = $1 AND s.user_id = $2
+      GROUP BY s.id, s.name, s.description
     `,
-    [name, description]
+    [id, userId]
   );
 
   return result.rows[0];
 };
 
-const updateSubject = async (id, name, description) => {
+const createSubject = async (name, description, userId) => {
+  const result = await pool.query(
+    `
+      INSERT INTO subjects (name, description, user_id)
+      VALUES ($1, $2, $3)
+      RETURNING *
+    `,
+    [name, description, userId]
+  );
+
+  return result.rows[0];
+};
+
+const updateSubject = async (id, name, description, userId) => {
   const result = await pool.query(
     `
       UPDATE subjects
@@ -74,19 +78,19 @@ const updateSubject = async (id, name, description) => {
         name = $1,
         description = $2,
         updated_at = CURRENT_TIMESTAMP
-      WHERE id = $3
+      WHERE id = $3 AND user_id = $4
       RETURNING *
     `,
-    [name, description, id]
+    [name, description, id, userId]
   );
 
   return result.rows[0];
 };
 
-const deleteSubject = async (id) => {
+const deleteSubject = async (id, userId) => {
   const result = await pool.query(
-    "DELETE FROM subjects WHERE id = $1 RETURNING *",
-    [id]
+    "DELETE FROM subjects WHERE id = $1 AND user_id = $2 RETURNING *",
+    [id, userId]
   );
 
   return result.rows[0];

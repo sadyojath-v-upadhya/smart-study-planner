@@ -13,6 +13,7 @@ import {
   Typography,
 } from "@mui/material";
 import { useEffect, useState } from "react";
+import { API_URL, authFetch } from "../../../utils/api";
 
 export default function AddExamDialog({ open, onClose, onAdd }) {
   const API_URL = import.meta.env.VITE_API_URL;
@@ -33,7 +34,7 @@ export default function AddExamDialog({ open, onClose, onAdd }) {
     if (open) {
       const fetchSubjects = async () => {
         try {
-          const res = await fetch(`${API_URL}/api/subjects`);
+          const res = await authFetch(`${API_URL}/api/subjects`);
           if (res.ok) {
             const data = await res.json();
             setSubjects(data);
@@ -53,7 +54,7 @@ export default function AddExamDialog({ open, onClose, onAdd }) {
       setError("");
       setSubmitting(false);
     }
-  }, [open, API_URL]);
+  }, [open]);
 
   const handleSubmit = async () => {
     if (!subjectId) {

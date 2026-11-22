@@ -1,8 +1,8 @@
 const pool = require("../config/database");
 
-const getAllStudySessions = async (filters = {}) => {
-  const conditions = [];
-  const params = [];
+const getAllStudySessions = async (filters = {}, userId) => {
+  const conditions = ["s.user_id = $1"];
+  const params = [userId];
 
   if (filters.date) {
     params.push(filters.date);
@@ -14,8 +14,7 @@ const getAllStudySessions = async (filters = {}) => {
     conditions.push(`ss.status = $${params.length}`);
   }
 
-  const whereClause =
-    conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "";
+  const whereClause = `WHERE ${conditions.join(" AND ")}`;
 
   const result = await pool.query(
     `
@@ -45,7 +44,7 @@ const getAllStudySessions = async (filters = {}) => {
   return result.rows;
 };
 
-const getStudySessionById = async (id) => {
+const getStudySessionById = async (id, userId) => {
   const result = await pool.query(
     `
       SELECT
@@ -65,15 +64,15 @@ const getStudySessionById = async (id) => {
       FROM study_sessions ss
       JOIN topics t ON ss.topic_id = t.id
       JOIN subjects s ON t.subject_id = s.id
-      WHERE ss.id = $1
+      WHERE ss.id = $1 AND s.user_id = $2
     `,
-    [id]
+    [id, userId]
   );
 
   return result.rows[0];
 };
 
-const getTodayStudySessions = async () => {
+const getTodayStudySessions = async (userId) => {
   const result = await pool.query(
     `
       SELECT
@@ -93,9 +92,10 @@ const getTodayStudySessions = async () => {
       FROM study_sessions ss
       JOIN topics t ON ss.topic_id = t.id
       JOIN subjects s ON t.subject_id = s.id
-      WHERE ss.session_date = CURRENT_DATE
+      WHERE ss.session_date = CURRENT_DATE AND s.user_id = $1
       ORDER BY ss.start_time ASC NULLS LAST, ss.id ASC
-    `
+    `,
+    [userId]
   );
 
   return result.rows;
@@ -107,8 +107,24 @@ const createStudySession = async (
   startTime,
   durationMinutes,
   notes = "",
-  status = "Planned"
+  status = "Planned",
+  userId
 ) => {
+  // Verify topic belongs to user
+  const topicCheck = await pool.query(
+    `
+      SELECT t.id
+      FROM topics t
+      JOIN subjects s ON t.subject_id = s.id
+      WHERE t.id = $1 AND s.user_id = $2
+    `,
+    [topicId, userId]
+  );
+
+  if (topicCheck.rows.length === 0) {
+    return null;
+  }
+
   const result = await pool.query(
     `
       INSERT INTO study_sessions (
@@ -125,7 +141,7 @@ const createStudySession = async (
     [topicId, sessionDate, startTime || null, durationMinutes, notes, status]
   );
 
-  return getStudySessionById(result.rows[0].id);
+  return getStudySessionById(result.rows[0].id, userId);
 };
 
 const updateStudySession = async (
@@ -134,9 +150,13 @@ const updateStudySession = async (
   startTime,
   durationMinutes,
   notes,
-  status
+  status,
+  userId
 ) => {
-  const result = await pool.query(
+  const existing = await getStudySessionById(id, userId);
+  if (!existing) return null;
+
+  await pool.query(
     `
       UPDATE study_sessions
       SET
@@ -147,33 +167,35 @@ const updateStudySession = async (
         status = $5,
         updated_at = CURRENT_TIMESTAMP
       WHERE id = $6
-      RETURNING *
     `,
     [sessionDate, startTime || null, durationMinutes, notes, status, id]
   );
 
-  if (!result.rows[0]) return null;
-  return getStudySessionById(id);
+  return getStudySessionById(id, userId);
 };
 
-const updateStudySessionStatus = async (id, status) => {
-  const result = await pool.query(
+const updateStudySessionStatus = async (id, status, userId) => {
+  const existing = await getStudySessionById(id, userId);
+  if (!existing) return null;
+
+  await pool.query(
     `
       UPDATE study_sessions
       SET
         status = $1,
         updated_at = CURRENT_TIMESTAMP
       WHERE id = $2
-      RETURNING *
     `,
     [status, id]
   );
 
-  if (!result.rows[0]) return null;
-  return getStudySessionById(id);
+  return getStudySessionById(id, userId);
 };
 
-const deleteStudySession = async (id) => {
+const deleteStudySession = async (id, userId) => {
+  const existing = await getStudySessionById(id, userId);
+  if (!existing) return null;
+
   const result = await pool.query(
     "DELETE FROM study_sessions WHERE id = $1 RETURNING *",
     [id]

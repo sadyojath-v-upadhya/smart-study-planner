@@ -15,6 +15,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import AddTopicDialog from "./components/AddTopicDialog";
 import EditTopicDialog from "./components/EditTopicDialog";
 import DeleteTopicDialog from "./components/DeleteTopicDialog";
+import { API_URL, authFetch } from "../../utils/api";
 
 const getDifficultyColor = (difficulty) => {
   switch (difficulty) {
@@ -43,7 +44,7 @@ export default function TopicsPage() {
   // Fetch subject details (name, description, progress)
   const fetchSubject = useCallback(async () => {
     try {
-      const response = await fetch(`${API_URL}/api/subjects/${subjectId}`);
+      const response = await authFetch(`${API_URL}/api/subjects/${subjectId}`);
 
       if (!response.ok) {
         throw new Error("Failed to fetch subject");
@@ -54,12 +55,12 @@ export default function TopicsPage() {
     } catch (error) {
       console.error("Error fetching subject details:", error);
     }
-  }, [API_URL, subjectId]);
+  }, [subjectId]);
 
   // Fetch topics for this subject
   const fetchTopics = useCallback(async () => {
     try {
-      const response = await fetch(
+      const response = await authFetch(
         `${API_URL}/api/topics/subject/${subjectId}`
       );
 
@@ -72,7 +73,7 @@ export default function TopicsPage() {
     } catch (error) {
       console.error("Error fetching topics:", error);
     }
-  }, [API_URL, subjectId]);
+  }, [subjectId]);
 
   useEffect(() => {
     fetchSubject();
@@ -81,11 +82,8 @@ export default function TopicsPage() {
 
   const handleAddTopic = async (data) => {
     try {
-      const response = await fetch(`${API_URL}/api/topics`, {
+      const response = await authFetch(`${API_URL}/api/topics`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
         body: JSON.stringify({
           subjectId: Number(subjectId),
           name: data.name,
@@ -108,13 +106,10 @@ export default function TopicsPage() {
 
   const handleUpdateTopic = async (data) => {
     try {
-      const response = await fetch(
+      const response = await authFetch(
         `${API_URL}/api/topics/${editingTopic.id}`,
         {
           method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-          },
           body: JSON.stringify({
             name: data.name,
             description: data.description,
@@ -137,7 +132,7 @@ export default function TopicsPage() {
 
   const handleDeleteTopic = async () => {
     try {
-      const response = await fetch(
+      const response = await authFetch(
         `${API_URL}/api/topics/${deletingTopic.id}`,
         {
           method: "DELETE",
@@ -158,11 +153,8 @@ export default function TopicsPage() {
 
   const handleToggleCompleted = async (topic) => {
     try {
-      const response = await fetch(`${API_URL}/api/topics/${topic.id}`, {
+      const response = await authFetch(`${API_URL}/api/topics/${topic.id}`, {
         method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
         body: JSON.stringify({
           name: topic.name,
           description: topic.description,

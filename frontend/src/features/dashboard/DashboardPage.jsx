@@ -15,6 +15,7 @@ import StudyRecommendations from "./components/StudyRecommendations";
 import SubjectProgressChart from "./components/SubjectProgressChart";
 import TodayTasks from "./components/TodayTasks";
 import UpcomingDeadlines from "./components/UpcomingDeadlines";
+import { API_URL, authFetch } from "../../utils/api";
 
 export default function DashboardPage() {
   const API_URL = import.meta.env.VITE_API_URL;
@@ -27,9 +28,9 @@ export default function DashboardPage() {
   const fetchDashboardData = useCallback(async () => {
     try {
       const [analyticsRes, deadlinesRes, recsRes] = await Promise.all([
-        fetch(`${API_URL}/api/analytics/dashboard`),
-        fetch(`${API_URL}/api/deadlines/upcoming`),
-        fetch(`${API_URL}/api/recommendations?limit=4`),
+        authFetch(`${API_URL}/api/analytics/dashboard`),
+        authFetch(`${API_URL}/api/deadlines/upcoming`),
+        authFetch(`${API_URL}/api/recommendations?limit=4`),
       ]);
 
       if (analyticsRes.ok) {
@@ -49,7 +50,7 @@ export default function DashboardPage() {
     } catch (err) {
       console.error("Error fetching live dashboard analytics:", err);
     }
-  }, [API_URL]);
+  }, []);
 
   useEffect(() => {
     fetchDashboardData();

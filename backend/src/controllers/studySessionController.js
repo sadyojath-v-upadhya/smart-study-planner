@@ -13,12 +13,14 @@ const VALID_STATUSES = ["Planned", "Completed", "Missed"];
 const getStudySessions = async (req, res) => {
   try {
     const { date, status } = req.query;
-    const sessions = await getAllStudySessions({ date, status });
+    const sessions = await getAllStudySessions(
+      { date, status },
+      req.user.userId
+    );
 
     res.json(sessions);
   } catch (error) {
     console.error("Error fetching study sessions:", error.message);
-
     res.status(500).json({
       message: "Failed to fetch study sessions",
     });
@@ -27,12 +29,10 @@ const getStudySessions = async (req, res) => {
 
 const getTodaySessions = async (req, res) => {
   try {
-    const sessions = await getTodayStudySessions();
-
+    const sessions = await getTodayStudySessions(req.user.userId);
     res.json(sessions);
   } catch (error) {
     console.error("Error fetching today's study sessions:", error.message);
-
     res.status(500).json({
       message: "Failed to fetch today's study sessions",
     });
@@ -42,7 +42,7 @@ const getTodaySessions = async (req, res) => {
 const getStudySession = async (req, res) => {
   try {
     const { id } = req.params;
-    const session = await getStudySessionById(id);
+    const session = await getStudySessionById(id, req.user.userId);
 
     if (!session) {
       return res.status(404).json({
@@ -53,7 +53,6 @@ const getStudySession = async (req, res) => {
     res.json(session);
   } catch (error) {
     console.error("Error fetching study session:", error.message);
-
     res.status(500).json({
       message: "Failed to fetch study session",
     });
@@ -96,13 +95,19 @@ const addStudySession = async (req, res) => {
       startTime || null,
       parsedDuration,
       notes.trim(),
-      status
+      status,
+      req.user.userId
     );
+
+    if (!session) {
+      return res.status(404).json({
+        message: "Topic not found or access denied",
+      });
+    }
 
     res.status(201).json(session);
   } catch (error) {
     console.error("Error creating study session:", error.message);
-
     res.status(500).json({
       message: "Failed to create study session",
     });
@@ -145,7 +150,8 @@ const updateStudySessionData = async (req, res) => {
       startTime || null,
       parsedDuration,
       notes.trim(),
-      status
+      status,
+      req.user.userId
     );
 
     if (!session) {
@@ -157,7 +163,6 @@ const updateStudySessionData = async (req, res) => {
     res.json(session);
   } catch (error) {
     console.error("Error updating study session:", error.message);
-
     res.status(500).json({
       message: "Failed to update study session",
     });
@@ -175,7 +180,11 @@ const changeSessionStatus = async (req, res) => {
       });
     }
 
-    const session = await updateStudySessionStatus(id, status);
+    const session = await updateStudySessionStatus(
+      id,
+      status,
+      req.user.userId
+    );
 
     if (!session) {
       return res.status(404).json({
@@ -186,7 +195,6 @@ const changeSessionStatus = async (req, res) => {
     res.json(session);
   } catch (error) {
     console.error("Error updating study session status:", error.message);
-
     res.status(500).json({
       message: "Failed to update study session status",
     });
@@ -196,7 +204,7 @@ const changeSessionStatus = async (req, res) => {
 const removeStudySession = async (req, res) => {
   try {
     const { id } = req.params;
-    const session = await deleteStudySession(id);
+    const session = await deleteStudySession(id, req.user.userId);
 
     if (!session) {
       return res.status(404).json({
@@ -210,7 +218,6 @@ const removeStudySession = async (req, res) => {
     });
   } catch (error) {
     console.error("Error deleting study session:", error.message);
-
     res.status(500).json({
       message: "Failed to delete study session",
     });

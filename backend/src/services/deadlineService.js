@@ -1,6 +1,6 @@
 const pool = require("../config/database");
 
-const getUpcomingDeadlines = async () => {
+const getUpcomingDeadlines = async (userId) => {
   const result = await pool.query(
     `
       SELECT
@@ -15,7 +15,7 @@ const getUpcomingDeadlines = async () => {
         (a.due_date - CURRENT_DATE) AS days_left
       FROM assignments a
       JOIN subjects s ON a.subject_id = s.id
-      WHERE a.status != 'Completed' AND a.due_date >= CURRENT_DATE
+      WHERE a.status != 'Completed' AND a.due_date >= CURRENT_DATE AND s.user_id = $1
 
       UNION ALL
 
@@ -31,11 +31,12 @@ const getUpcomingDeadlines = async () => {
         (e.exam_date - CURRENT_DATE) AS days_left
       FROM exams e
       JOIN subjects s ON e.subject_id = s.id
-      WHERE e.exam_date >= CURRENT_DATE
+      WHERE e.exam_date >= CURRENT_DATE AND s.user_id = $1
 
       ORDER BY deadline_date ASC, days_left ASC
       LIMIT 10
-    `
+    `,
+    [userId]
   );
 
   return result.rows;

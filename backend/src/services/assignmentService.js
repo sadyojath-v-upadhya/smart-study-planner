@@ -1,8 +1,8 @@
 const pool = require("../config/database");
 
-const getAllAssignments = async (filters = {}) => {
-  const conditions = [];
-  const params = [];
+const getAllAssignments = async (filters = {}, userId) => {
+  const conditions = ["s.user_id = $1"];
+  const params = [userId];
 
   if (filters.subjectId) {
     params.push(filters.subjectId);
@@ -19,8 +19,7 @@ const getAllAssignments = async (filters = {}) => {
     conditions.push(`a.priority = $${params.length}`);
   }
 
-  const whereClause =
-    conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "";
+  const whereClause = `WHERE ${conditions.join(" AND ")}`;
 
   const result = await pool.query(
     `
@@ -46,7 +45,7 @@ const getAllAssignments = async (filters = {}) => {
   return result.rows;
 };
 
-const getAssignmentById = async (id) => {
+const getAssignmentById = async (id, userId) => {
   const result = await pool.query(
     `
       SELECT
@@ -62,9 +61,9 @@ const getAssignmentById = async (id) => {
         (a.due_date - CURRENT_DATE) AS days_left
       FROM assignments a
       JOIN subjects s ON a.subject_id = s.id
-      WHERE a.id = $1
+      WHERE a.id = $1 AND s.user_id = $2
     `,
-    [id]
+    [id, userId]
   );
 
   return result.rows[0];
@@ -76,8 +75,19 @@ const createAssignment = async (
   description = "",
   dueDate,
   priority = "Medium",
-  status = "Pending"
+  status = "Pending",
+  userId
 ) => {
+  // Verify subject belongs to user
+  const subjectCheck = await pool.query(
+    "SELECT id FROM subjects WHERE id = $1 AND user_id = $2",
+    [subjectId, userId]
+  );
+
+  if (subjectCheck.rows.length === 0) {
+    return null;
+  }
+
   const result = await pool.query(
     `
       INSERT INTO assignments (
@@ -94,7 +104,7 @@ const createAssignment = async (
     [subjectId, title, description, dueDate, priority, status]
   );
 
-  return getAssignmentById(result.rows[0].id);
+  return getAssignmentById(result.rows[0].id, userId);
 };
 
 const updateAssignment = async (
@@ -103,9 +113,13 @@ const updateAssignment = async (
   description,
   dueDate,
   priority,
-  status
+  status,
+  userId
 ) => {
-  const result = await pool.query(
+  const existing = await getAssignmentById(id, userId);
+  if (!existing) return null;
+
+  await pool.query(
     `
       UPDATE assignments
       SET
@@ -116,33 +130,35 @@ const updateAssignment = async (
         status = $5,
         updated_at = CURRENT_TIMESTAMP
       WHERE id = $6
-      RETURNING *
     `,
     [title, description, dueDate, priority, status, id]
   );
 
-  if (!result.rows[0]) return null;
-  return getAssignmentById(id);
+  return getAssignmentById(id, userId);
 };
 
-const updateAssignmentStatus = async (id, status) => {
-  const result = await pool.query(
+const updateAssignmentStatus = async (id, status, userId) => {
+  const existing = await getAssignmentById(id, userId);
+  if (!existing) return null;
+
+  await pool.query(
     `
       UPDATE assignments
       SET
         status = $1,
         updated_at = CURRENT_TIMESTAMP
       WHERE id = $2
-      RETURNING *
     `,
     [status, id]
   );
 
-  if (!result.rows[0]) return null;
-  return getAssignmentById(id);
+  return getAssignmentById(id, userId);
 };
 
-const deleteAssignment = async (id) => {
+const deleteAssignment = async (id, userId) => {
+  const existing = await getAssignmentById(id, userId);
+  if (!existing) return null;
+
   const result = await pool.query(
     "DELETE FROM assignments WHERE id = $1 RETURNING *",
     [id]

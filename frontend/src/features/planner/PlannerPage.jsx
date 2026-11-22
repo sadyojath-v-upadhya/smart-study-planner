@@ -22,6 +22,7 @@ import {
 import { useCallback, useEffect, useState } from "react";
 import { useLocation } from "react-router-dom";
 import AddSessionDialog from "./components/AddSessionDialog";
+import { API_URL, authFetch } from "../../utils/api";
 
 const getDifficultyColor = (difficulty) => {
   switch (difficulty) {
@@ -76,7 +77,7 @@ export default function PlannerPage() {
 
   const fetchSessions = useCallback(async () => {
     try {
-      const res = await fetch(`${API_URL}/api/study-sessions`);
+      const res = await authFetch(`${API_URL}/api/study-sessions`);
       if (res.ok) {
         const data = await res.json();
         setSessions(data);
@@ -84,18 +85,15 @@ export default function PlannerPage() {
     } catch (err) {
       console.error("Error fetching study sessions:", err);
     }
-  }, [API_URL]);
+  }, []);
 
   useEffect(() => {
     fetchSessions();
   }, [fetchSessions]);
 
   const handleAddSession = async (sessionData) => {
-    const res = await fetch(`${API_URL}/api/study-sessions`, {
+    const res = await authFetch(`${API_URL}/api/study-sessions`, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
       body: JSON.stringify(sessionData),
     });
 
@@ -114,13 +112,10 @@ export default function PlannerPage() {
       session.status === "Completed" ? "Planned" : "Completed";
 
     try {
-      const res = await fetch(
+      const res = await authFetch(
         `${API_URL}/api/study-sessions/${session.id}/status`,
         {
           method: "PATCH",
-          headers: {
-            "Content-Type": "application/json",
-          },
           body: JSON.stringify({ status: nextStatus }),
         }
       );
@@ -137,7 +132,7 @@ export default function PlannerPage() {
 
   const handleDeleteSession = async (sessionId) => {
     try {
-      const res = await fetch(`${API_URL}/api/study-sessions/${sessionId}`, {
+      const res = await authFetch(`${API_URL}/api/study-sessions/${sessionId}`, {
         method: "DELETE",
       });
 

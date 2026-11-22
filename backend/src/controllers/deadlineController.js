@@ -2,12 +2,10 @@ const { getUpcomingDeadlines } = require("../services/deadlineService");
 
 const getDeadlines = async (req, res) => {
   try {
-    const deadlines = await getUpcomingDeadlines();
-
+    const deadlines = await getUpcomingDeadlines(req.user.userId);
     res.json(deadlines);
   } catch (error) {
     console.error("Error fetching upcoming deadlines:", error.message);
-
     res.status(500).json({
       message: "Failed to fetch upcoming deadlines",
     });

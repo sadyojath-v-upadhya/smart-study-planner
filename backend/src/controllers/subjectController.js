@@ -8,12 +8,10 @@ const {
 
 const getSubjects = async (req, res) => {
   try {
-    const subjects = await getAllSubjects();
-
+    const subjects = await getAllSubjects(req.user.userId);
     res.json(subjects);
   } catch (error) {
     console.error("Error fetching subjects:", error.message);
-
     res.status(500).json({
       message: "Failed to fetch subjects",
     });
@@ -23,8 +21,7 @@ const getSubjects = async (req, res) => {
 const getSubject = async (req, res) => {
   try {
     const { id } = req.params;
-
-    const subject = await getSubjectById(id);
+    const subject = await getSubjectById(id, req.user.userId);
 
     if (!subject) {
       return res.status(404).json({
@@ -35,7 +32,6 @@ const getSubject = async (req, res) => {
     res.json(subject);
   } catch (error) {
     console.error("Error fetching subject:", error.message);
-
     res.status(500).json({
       message: "Failed to fetch subject",
     });
@@ -59,13 +55,13 @@ const addSubject = async (req, res) => {
 
     const subject = await createSubject(
       name.trim(),
-      description.trim()
+      description.trim(),
+      req.user.userId
     );
 
     res.status(201).json(subject);
   } catch (error) {
     console.error("Error creating subject:", error.message);
-
     res.status(500).json({
       message: "Failed to create subject",
     });
@@ -91,7 +87,8 @@ const updateSubjectData = async (req, res) => {
     const subject = await updateSubject(
       id,
       name.trim(),
-      description.trim()
+      description.trim(),
+      req.user.userId
     );
 
     if (!subject) {
@@ -103,7 +100,6 @@ const updateSubjectData = async (req, res) => {
     res.json(subject);
   } catch (error) {
     console.error("Error updating subject:", error.message);
-
     res.status(500).json({
       message: "Failed to update subject",
     });
@@ -113,8 +109,7 @@ const updateSubjectData = async (req, res) => {
 const removeSubject = async (req, res) => {
   try {
     const { id } = req.params;
-
-    const subject = await deleteSubject(id);
+    const subject = await deleteSubject(id, req.user.userId);
 
     if (!subject) {
       return res.status(404).json({
@@ -128,7 +123,6 @@ const removeSubject = async (req, res) => {
     });
   } catch (error) {
     console.error("Error deleting subject:", error.message);
-
     res.status(500).json({
       message: "Failed to delete subject",
     });

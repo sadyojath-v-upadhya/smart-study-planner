@@ -1,16 +1,15 @@
 const pool = require("../config/database");
 
-const getAllExams = async (filters = {}) => {
-  const conditions = [];
-  const params = [];
+const getAllExams = async (filters = {}, userId) => {
+  const conditions = ["s.user_id = $1"];
+  const params = [userId];
 
   if (filters.subjectId) {
     params.push(filters.subjectId);
     conditions.push(`e.subject_id = $${params.length}`);
   }
 
-  const whereClause =
-    conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "";
+  const whereClause = `WHERE ${conditions.join(" AND ")}`;
 
   const result = await pool.query(
     `
@@ -36,7 +35,7 @@ const getAllExams = async (filters = {}) => {
   return result.rows;
 };
 
-const getExamById = async (id) => {
+const getExamById = async (id, userId) => {
   const result = await pool.query(
     `
       SELECT
@@ -52,9 +51,9 @@ const getExamById = async (id) => {
         (e.exam_date - CURRENT_DATE) AS days_left
       FROM exams e
       JOIN subjects s ON e.subject_id = s.id
-      WHERE e.id = $1
+      WHERE e.id = $1 AND s.user_id = $2
     `,
-    [id]
+    [id, userId]
   );
 
   return result.rows[0];
@@ -66,8 +65,19 @@ const createExam = async (
   examDate,
   startTime = null,
   durationMinutes = null,
-  notes = ""
+  notes = "",
+  userId
 ) => {
+  // Verify subject belongs to user
+  const subjectCheck = await pool.query(
+    "SELECT id FROM subjects WHERE id = $1 AND user_id = $2",
+    [subjectId, userId]
+  );
+
+  if (subjectCheck.rows.length === 0) {
+    return null;
+  }
+
   const result = await pool.query(
     `
       INSERT INTO exams (
@@ -91,7 +101,7 @@ const createExam = async (
     ]
   );
 
-  return getExamById(result.rows[0].id);
+  return getExamById(result.rows[0].id, userId);
 };
 
 const updateExam = async (
@@ -100,9 +110,13 @@ const updateExam = async (
   examDate,
   startTime,
   durationMinutes,
-  notes
+  notes,
+  userId
 ) => {
-  const result = await pool.query(
+  const existing = await getExamById(id, userId);
+  if (!existing) return null;
+
+  await pool.query(
     `
       UPDATE exams
       SET
@@ -113,7 +127,6 @@ const updateExam = async (
         notes = $5,
         updated_at = CURRENT_TIMESTAMP
       WHERE id = $6
-      RETURNING *
     `,
     [
       title,
@@ -125,11 +138,13 @@ const updateExam = async (
     ]
   );
 
-  if (!result.rows[0]) return null;
-  return getExamById(id);
+  return getExamById(id, userId);
 };
 
-const deleteExam = async (id) => {
+const deleteExam = async (id, userId) => {
+  const existing = await getExamById(id, userId);
+  if (!existing) return null;
+
   const result = await pool.query(
     "DELETE FROM exams WHERE id = $1 RETURNING *",
     [id]

@@ -1,54 +1,58 @@
 const pool = require("../config/database");
 
-const getStudyRecommendations = async (limit = 4) => {
-  const result = await pool.query(`
-    WITH subject_stats AS (
+const getStudyRecommendations = async (userId, limit = 4) => {
+  const result = await pool.query(
+    `
+      WITH subject_stats AS (
+        SELECT
+          s.id AS subject_id,
+          s.name AS subject_name,
+          CASE
+            WHEN COUNT(t_all.id) = 0 THEN 0
+            ELSE ROUND(COUNT(t_all.id) FILTER (WHERE t_all.completed = true) * 100.0 / COUNT(t_all.id))
+          END AS subject_progress,
+          MIN(e.exam_date - CURRENT_DATE) FILTER (WHERE e.exam_date >= CURRENT_DATE) AS nearest_exam_days,
+          (
+            SELECT e2.title
+            FROM exams e2
+            WHERE e2.subject_id = s.id AND e2.exam_date >= CURRENT_DATE
+            ORDER BY e2.exam_date ASC
+            LIMIT 1
+          ) AS nearest_exam_title
+        FROM subjects s
+        LEFT JOIN topics t_all ON s.id = t_all.subject_id
+        LEFT JOIN exams e ON s.id = e.subject_id
+        WHERE s.user_id = $1
+        GROUP BY s.id, s.name
+      )
       SELECT
-        s.id AS subject_id,
-        s.name AS subject_name,
-        CASE
-          WHEN COUNT(t_all.id) = 0 THEN 0
-          ELSE ROUND(COUNT(t_all.id) FILTER (WHERE t_all.completed = true) * 100.0 / COUNT(t_all.id))
-        END AS subject_progress,
-        MIN(e.exam_date - CURRENT_DATE) FILTER (WHERE e.exam_date >= CURRENT_DATE) AS nearest_exam_days,
-        (
-          SELECT e2.title
-          FROM exams e2
-          WHERE e2.subject_id = s.id AND e2.exam_date >= CURRENT_DATE
-          ORDER BY e2.exam_date ASC
-          LIMIT 1
-        ) AS nearest_exam_title
-      FROM subjects s
-      LEFT JOIN topics t_all ON s.id = t_all.subject_id
-      LEFT JOIN exams e ON s.id = e.subject_id
-      GROUP BY s.id, s.name
-    )
-    SELECT
-      t.id AS topic_id,
-      t.name AS topic_name,
-      t.difficulty,
-      t.description AS topic_description,
-      ss_stat.subject_id,
-      ss_stat.subject_name,
-      ss_stat.subject_progress,
-      ss_stat.nearest_exam_days,
-      ss_stat.nearest_exam_title,
-      COUNT(sess.id) FILTER (WHERE sess.status = 'Completed') AS completed_sessions_count
-    FROM topics t
-    JOIN subject_stats ss_stat ON t.subject_id = ss_stat.subject_id
-    LEFT JOIN study_sessions sess ON t.id = sess.topic_id
-    WHERE t.completed = false
-    GROUP BY
-      t.id,
-      t.name,
-      t.difficulty,
-      t.description,
-      ss_stat.subject_id,
-      ss_stat.subject_name,
-      ss_stat.subject_progress,
-      ss_stat.nearest_exam_days,
-      ss_stat.nearest_exam_title;
-  `);
+        t.id AS topic_id,
+        t.name AS topic_name,
+        t.difficulty,
+        t.description AS topic_description,
+        ss_stat.subject_id,
+        ss_stat.subject_name,
+        ss_stat.subject_progress,
+        ss_stat.nearest_exam_days,
+        ss_stat.nearest_exam_title,
+        COUNT(sess.id) FILTER (WHERE sess.status = 'Completed') AS completed_sessions_count
+      FROM topics t
+      JOIN subject_stats ss_stat ON t.subject_id = ss_stat.subject_id
+      LEFT JOIN study_sessions sess ON t.id = sess.topic_id
+      WHERE t.completed = false
+      GROUP BY
+        t.id,
+        t.name,
+        t.difficulty,
+        t.description,
+        ss_stat.subject_id,
+        ss_stat.subject_name,
+        ss_stat.subject_progress,
+        ss_stat.nearest_exam_days,
+        ss_stat.nearest_exam_title;
+    `,
+    [userId]
+  );
 
   const recommendations = result.rows.map((row) => {
     let score = 0;

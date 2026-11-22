@@ -25,6 +25,7 @@ import {
 import { useCallback, useEffect, useState } from "react";
 import AddAssignmentDialog from "./components/AddAssignmentDialog";
 import AddExamDialog from "./components/AddExamDialog";
+import { API_URL, authFetch } from "../../utils/api";
 
 const getPriorityColor = (priority) => {
   switch (priority) {
@@ -89,7 +90,7 @@ export default function AssignmentsPage() {
 
   const fetchAssignments = useCallback(async () => {
     try {
-      const res = await fetch(`${API_URL}/api/assignments`);
+      const res = await authFetch(`${API_URL}/api/assignments`);
       if (res.ok) {
         const data = await res.json();
         setAssignments(data);
@@ -97,11 +98,11 @@ export default function AssignmentsPage() {
     } catch (err) {
       console.error("Error fetching assignments:", err);
     }
-  }, [API_URL]);
+  }, []);
 
   const fetchExams = useCallback(async () => {
     try {
-      const res = await fetch(`${API_URL}/api/exams`);
+      const res = await authFetch(`${API_URL}/api/exams`);
       if (res.ok) {
         const data = await res.json();
         setExams(data);
@@ -109,11 +110,11 @@ export default function AssignmentsPage() {
     } catch (err) {
       console.error("Error fetching exams:", err);
     }
-  }, [API_URL]);
+  }, []);
 
   const fetchDeadlines = useCallback(async () => {
     try {
-      const res = await fetch(`${API_URL}/api/deadlines/upcoming`);
+      const res = await authFetch(`${API_URL}/api/deadlines/upcoming`);
       if (res.ok) {
         const data = await res.json();
         setDeadlines(data);
@@ -121,7 +122,7 @@ export default function AssignmentsPage() {
     } catch (err) {
       console.error("Error fetching upcoming deadlines:", err);
     }
-  }, [API_URL]);
+  }, []);
 
   useEffect(() => {
     fetchAssignments();
@@ -131,9 +132,8 @@ export default function AssignmentsPage() {
 
   // Assignment Actions
   const handleAddAssignment = async (payload) => {
-    const res = await fetch(`${API_URL}/api/assignments`, {
+    const res = await authFetch(`${API_URL}/api/assignments`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
     });
 
@@ -159,11 +159,10 @@ export default function AssignmentsPage() {
         : "Pending";
 
     try {
-      const res = await fetch(
+      const res = await authFetch(
         `${API_URL}/api/assignments/${assignment.id}/status`,
         {
           method: "PATCH",
-          headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ status: nextStatus }),
         }
       );
@@ -178,7 +177,7 @@ export default function AssignmentsPage() {
 
   const handleDeleteAssignment = async (id) => {
     try {
-      const res = await fetch(`${API_URL}/api/assignments/${id}`, {
+      const res = await authFetch(`${API_URL}/api/assignments/${id}`, {
         method: "DELETE",
       });
       if (res.ok) {
@@ -192,9 +191,8 @@ export default function AssignmentsPage() {
 
   // Exam Actions
   const handleAddExam = async (payload) => {
-    const res = await fetch(`${API_URL}/api/exams`, {
+    const res = await authFetch(`${API_URL}/api/exams`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
     });
 
@@ -213,7 +211,7 @@ export default function AssignmentsPage() {
 
   const handleDeleteExam = async (id) => {
     try {
-      const res = await fetch(`${API_URL}/api/exams/${id}`, {
+      const res = await authFetch(`${API_URL}/api/exams/${id}`, {
         method: "DELETE",
       });
       if (res.ok) {

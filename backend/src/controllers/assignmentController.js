@@ -13,16 +13,18 @@ const VALID_STATUSES = ["Pending", "In Progress", "Completed"];
 const getAssignments = async (req, res) => {
   try {
     const { subjectId, status, priority } = req.query;
-    const assignments = await getAllAssignments({
-      subjectId: subjectId ? Number(subjectId) : undefined,
-      status,
-      priority,
-    });
+    const assignments = await getAllAssignments(
+      {
+        subjectId: subjectId ? Number(subjectId) : undefined,
+        status,
+        priority,
+      },
+      req.user.userId
+    );
 
     res.json(assignments);
   } catch (error) {
     console.error("Error fetching assignments:", error.message);
-
     res.status(500).json({
       message: "Failed to fetch assignments",
     });
@@ -32,7 +34,7 @@ const getAssignments = async (req, res) => {
 const getAssignment = async (req, res) => {
   try {
     const { id } = req.params;
-    const assignment = await getAssignmentById(id);
+    const assignment = await getAssignmentById(id, req.user.userId);
 
     if (!assignment) {
       return res.status(404).json({
@@ -43,7 +45,6 @@ const getAssignment = async (req, res) => {
     res.json(assignment);
   } catch (error) {
     console.error("Error fetching assignment:", error.message);
-
     res.status(500).json({
       message: "Failed to fetch assignment",
     });
@@ -85,13 +86,19 @@ const addAssignment = async (req, res) => {
       description.trim(),
       dueDate,
       priority,
-      status
+      status,
+      req.user.userId
     );
+
+    if (!assignment) {
+      return res.status(404).json({
+        message: "Subject not found or access denied",
+      });
+    }
 
     res.status(201).json(assignment);
   } catch (error) {
     console.error("Error creating assignment:", error.message);
-
     res.status(500).json({
       message: "Failed to create assignment",
     });
@@ -133,7 +140,8 @@ const updateAssignmentData = async (req, res) => {
       description.trim(),
       dueDate,
       priority,
-      status
+      status,
+      req.user.userId
     );
 
     if (!assignment) {
@@ -145,7 +153,6 @@ const updateAssignmentData = async (req, res) => {
     res.json(assignment);
   } catch (error) {
     console.error("Error updating assignment:", error.message);
-
     res.status(500).json({
       message: "Failed to update assignment",
     });
@@ -163,7 +170,11 @@ const changeAssignmentStatus = async (req, res) => {
       });
     }
 
-    const assignment = await updateAssignmentStatus(id, status);
+    const assignment = await updateAssignmentStatus(
+      id,
+      status,
+      req.user.userId
+    );
 
     if (!assignment) {
       return res.status(404).json({
@@ -174,7 +185,6 @@ const changeAssignmentStatus = async (req, res) => {
     res.json(assignment);
   } catch (error) {
     console.error("Error updating assignment status:", error.message);
-
     res.status(500).json({
       message: "Failed to update assignment status",
     });
@@ -184,7 +194,7 @@ const changeAssignmentStatus = async (req, res) => {
 const removeAssignment = async (req, res) => {
   try {
     const { id } = req.params;
-    const assignment = await deleteAssignment(id);
+    const assignment = await deleteAssignment(id, req.user.userId);
 
     if (!assignment) {
       return res.status(404).json({
@@ -198,7 +208,6 @@ const removeAssignment = async (req, res) => {
     });
   } catch (error) {
     console.error("Error deleting assignment:", error.message);
-
     res.status(500).json({
       message: "Failed to delete assignment",
     });

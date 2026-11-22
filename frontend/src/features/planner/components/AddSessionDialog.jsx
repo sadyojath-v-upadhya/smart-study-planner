@@ -15,6 +15,7 @@ import {
   Typography,
 } from "@mui/material";
 import { useEffect, useState } from "react";
+import { API_URL, authFetch } from "../../../utils/api";
 
 const DURATION_PRESETS = [30, 45, 60, 90, 120];
 
@@ -45,7 +46,7 @@ export default function AddSessionDialog({
     if (open) {
       const fetchSubjects = async () => {
         try {
-          const res = await fetch(`${API_URL}/api/subjects`);
+          const res = await authFetch(`${API_URL}/api/subjects`);
           if (res.ok) {
             const data = await res.json();
             setSubjects(data);
@@ -70,7 +71,7 @@ export default function AddSessionDialog({
       setError("");
       setSubmitting(false);
     }
-  }, [open, prefill, API_URL]);
+  }, [open, prefill]);
 
   // Fetch topics whenever selected subject changes
   useEffect(() => {
@@ -82,7 +83,7 @@ export default function AddSessionDialog({
 
     const fetchTopics = async () => {
       try {
-        const res = await fetch(`${API_URL}/api/topics/subject/${subjectId}`);
+        const res = await authFetch(`${API_URL}/api/topics/subject/${subjectId}`);
         if (res.ok) {
           const data = await res.json();
           setTopics(data);

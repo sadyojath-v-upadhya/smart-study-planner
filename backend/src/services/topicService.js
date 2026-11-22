@@ -1,37 +1,66 @@
 const pool = require("../config/database");
 
-const getAllTopics = async () => {
+const getAllTopics = async (userId) => {
   const result = await pool.query(
     `
-      SELECT *
-      FROM topics
-      ORDER BY id ASC
-    `
+      SELECT t.*
+      FROM topics t
+      JOIN subjects s ON t.subject_id = s.id
+      WHERE s.user_id = $1
+      ORDER BY t.id ASC
+    `,
+    [userId]
   );
 
   return result.rows;
 };
 
-const getTopicsBySubject = async (subjectId) => {
+const getTopicsBySubject = async (subjectId, userId) => {
   const result = await pool.query(
     `
-      SELECT *
-      FROM topics
-      WHERE subject_id = $1
-      ORDER BY id ASC
+      SELECT t.*
+      FROM topics t
+      JOIN subjects s ON t.subject_id = s.id
+      WHERE t.subject_id = $1 AND s.user_id = $2
+      ORDER BY t.id ASC
     `,
-    [subjectId]
+    [subjectId, userId]
   );
 
   return result.rows;
+};
+
+const getTopicById = async (id, userId) => {
+  const result = await pool.query(
+    `
+      SELECT t.*
+      FROM topics t
+      JOIN subjects s ON t.subject_id = s.id
+      WHERE t.id = $1 AND s.user_id = $2
+    `,
+    [id, userId]
+  );
+
+  return result.rows[0];
 };
 
 const createTopic = async (
   subjectId,
   name,
   description,
-  difficulty = "Medium"
+  difficulty = "Medium",
+  userId
 ) => {
+  // Verify subject ownership
+  const subjectCheck = await pool.query(
+    "SELECT id FROM subjects WHERE id = $1 AND user_id = $2",
+    [subjectId, userId]
+  );
+
+  if (subjectCheck.rows.length === 0) {
+    return null;
+  }
+
   const result = await pool.query(
     `
       INSERT INTO topics (subject_id, name, description, difficulty)
@@ -44,26 +73,20 @@ const createTopic = async (
   return result.rows[0];
 };
 
-const getTopicById = async (id) => {
-  const result = await pool.query(
-    `
-      SELECT *
-      FROM topics
-      WHERE id = $1
-    `,
-    [id]
-  );
-
-  return result.rows[0];
-};
-
 const updateTopic = async (
   id,
   name,
   description,
   completed,
-  difficulty = "Medium"
+  difficulty = "Medium",
+  userId
 ) => {
+  // Check ownership
+  const existing = await getTopicById(id, userId);
+  if (!existing) {
+    return null;
+  }
+
   const result = await pool.query(
     `
       UPDATE topics
@@ -82,7 +105,13 @@ const updateTopic = async (
   return result.rows[0];
 };
 
-const deleteTopic = async (id) => {
+const deleteTopic = async (id, userId) => {
+  // Check ownership
+  const existing = await getTopicById(id, userId);
+  if (!existing) {
+    return null;
+  }
+
   const result = await pool.query(
     `
       DELETE FROM topics

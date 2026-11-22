@@ -11,12 +11,10 @@ const VALID_DIFFICULTIES = ["Easy", "Medium", "Hard"];
 
 const getTopics = async (req, res) => {
   try {
-    const topics = await getAllTopics();
-
+    const topics = await getAllTopics(req.user.userId);
     res.json(topics);
   } catch (error) {
     console.error("Error fetching topics:", error.message);
-
     res.status(500).json({
       message: "Failed to fetch topics",
     });
@@ -26,13 +24,10 @@ const getTopics = async (req, res) => {
 const getSubjectTopics = async (req, res) => {
   try {
     const { subjectId } = req.params;
-
-    const topics = await getTopicsBySubject(subjectId);
-
+    const topics = await getTopicsBySubject(subjectId, req.user.userId);
     res.json(topics);
   } catch (error) {
     console.error("Error fetching subject topics:", error.message);
-
     res.status(500).json({
       message: "Failed to fetch subject topics",
     });
@@ -42,8 +37,7 @@ const getSubjectTopics = async (req, res) => {
 const getTopic = async (req, res) => {
   try {
     const { id } = req.params;
-
-    const topic = await getTopicById(id);
+    const topic = await getTopicById(id, req.user.userId);
 
     if (!topic) {
       return res.status(404).json({
@@ -54,7 +48,6 @@ const getTopic = async (req, res) => {
     res.json(topic);
   } catch (error) {
     console.error("Error fetching topic:", error.message);
-
     res.status(500).json({
       message: "Failed to fetch topic",
     });
@@ -81,13 +74,19 @@ const addTopic = async (req, res) => {
       subjectId,
       name.trim(),
       description.trim(),
-      difficulty
+      difficulty,
+      req.user.userId
     );
+
+    if (!topic) {
+      return res.status(404).json({
+        message: "Subject not found or access denied",
+      });
+    }
 
     res.status(201).json(topic);
   } catch (error) {
     console.error("Error creating topic:", error.message);
-
     res.status(500).json({
       message: "Failed to create topic",
     });
@@ -105,8 +104,7 @@ const updateTopicData = async (req, res) => {
       typeof completed !== "boolean"
     ) {
       return res.status(400).json({
-        message:
-          "Name, description, and completed status are required",
+        message: "Name, description, and completed status are required",
       });
     }
 
@@ -121,7 +119,8 @@ const updateTopicData = async (req, res) => {
       name.trim(),
       description.trim(),
       completed,
-      difficulty
+      difficulty,
+      req.user.userId
     );
 
     if (!topic) {
@@ -133,7 +132,6 @@ const updateTopicData = async (req, res) => {
     res.json(topic);
   } catch (error) {
     console.error("Error updating topic:", error.message);
-
     res.status(500).json({
       message: "Failed to update topic",
     });
@@ -143,8 +141,7 @@ const updateTopicData = async (req, res) => {
 const removeTopic = async (req, res) => {
   try {
     const { id } = req.params;
-
-    const topic = await deleteTopic(id);
+    const topic = await deleteTopic(id, req.user.userId);
 
     if (!topic) {
       return res.status(404).json({
@@ -158,7 +155,6 @@ const removeTopic = async (req, res) => {
     });
   } catch (error) {
     console.error("Error deleting topic:", error.message);
-
     res.status(500).json({
       message: "Failed to delete topic",
     });
