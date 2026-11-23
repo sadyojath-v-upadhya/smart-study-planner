@@ -15,6 +15,7 @@ import StudyRecommendations from "./components/StudyRecommendations";
 import SubjectProgressChart from "./components/SubjectProgressChart";
 import TodayTasks from "./components/TodayTasks";
 import UpcomingDeadlines from "./components/UpcomingDeadlines";
+import ExportDialog from "../export/ExportDialog";
 import { API_URL, authFetch } from "../../utils/api";
 
 export default function DashboardPage() {
@@ -24,6 +25,7 @@ export default function DashboardPage() {
   const [analytics, setAnalytics] = useState(null);
   const [deadlines, setDeadlines] = useState([]);
   const [recommendations, setRecommendations] = useState([]);
+  const [exportOpen, setExportOpen] = useState(false);
 
   const fetchDashboardData = useCallback(async () => {
     try {
@@ -87,7 +89,10 @@ export default function DashboardPage() {
 
   return (
     <Box>
-      <DashboardHeader />
+      <DashboardHeader
+        onExportClick={() => setExportOpen(true)}
+        onAddTask={() => navigate("/assignments")}
+      />
 
       {/* Live Stat Cards */}
       <Grid container spacing={3} sx={{ mt: 1 }}>
@@ -134,6 +139,12 @@ export default function DashboardPage() {
           <UpcomingDeadlines deadlines={deadlines} />
         </Grid>
       </Grid>
+
+      {/* Export / Report Dialog */}
+      <ExportDialog
+        open={exportOpen}
+        onClose={() => setExportOpen(false)}
+      />
     </Box>
   );
 }

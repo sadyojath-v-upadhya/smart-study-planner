@@ -1,7 +1,7 @@
-import { AddOutlined } from "@mui/icons-material";
-import { Box, Button, Typography } from "@mui/material";
+import { AddOutlined, FileDownloadOutlined } from "@mui/icons-material";
+import { Box, Button, Stack, Typography } from "@mui/material";
 
-export default function DashboardHeader() {
+export default function DashboardHeader({ onExportClick, onAddTask }) {
   return (
     <Box
       sx={{
@@ -20,7 +20,7 @@ export default function DashboardHeader() {
     >
       <Box>
         <Typography variant="h4" component="h2">
-          Good evening!
+          Academic Overview
         </Typography>
 
         <Typography
@@ -28,16 +28,27 @@ export default function DashboardHeader() {
           color="text.secondary"
           sx={{ mt: 0.5 }}
         >
-          Here&apos;s an overview of your study progress.
+          Monitor your syllabus completion, active deadlines, and logged study hours.
         </Typography>
       </Box>
 
-      <Button
-        variant="contained"
-        startIcon={<AddOutlined />}
-      >
-        Add Task
-      </Button>
+      <Stack direction="row" spacing={1.5}>
+        <Button
+          variant="outlined"
+          startIcon={<FileDownloadOutlined />}
+          onClick={onExportClick}
+        >
+          Export / Report
+        </Button>
+
+        <Button
+          variant="contained"
+          startIcon={<AddOutlined />}
+          onClick={onAddTask}
+        >
+          Add Task
+        </Button>
+      </Stack>
     </Box>
   );
 }
