@@ -1,4 +1,7 @@
-const { getDashboardAnalytics } = require("../services/analyticsService");
+const {
+  getDashboardAnalytics,
+  getStreakAndHeatmap,
+} = require("../services/analyticsService");
 
 const getDashboardData = async (req, res) => {
   try {
@@ -12,6 +15,19 @@ const getDashboardData = async (req, res) => {
   }
 };
 
+const getStreakData = async (req, res) => {
+  try {
+    const data = await getStreakAndHeatmap(req.user.userId);
+    res.json(data);
+  } catch (error) {
+    console.error("Error fetching streak and heatmap data:", error.message);
+    res.status(500).json({
+      message: "Failed to fetch study streak data",
+    });
+  }
+};
+
 module.exports = {
   getDashboardData,
+  getStreakData,
 };

@@ -13,6 +13,7 @@ import StatCard from "./components/StatCard";
 import StudyProgressChart from "./components/StudyProgressChart";
 import StudyRecommendations from "./components/StudyRecommendations";
 import SubjectProgressChart from "./components/SubjectProgressChart";
+import StudyStreakHeatmap from "./components/StudyStreakHeatmap";
 import TodayTasks from "./components/TodayTasks";
 import UpcomingDeadlines from "./components/UpcomingDeadlines";
 import ExportDialog from "../export/ExportDialog";
@@ -107,6 +108,11 @@ export default function DashboardPage() {
           </Grid>
         ))}
       </Grid>
+
+      {/* Daily Study Streak & Activity Heatmap */}
+      <Box sx={{ mt: 3 }}>
+        <StudyStreakHeatmap />
+      </Box>
 
       {/* Smart Recommendations Section */}
       <Box sx={{ mt: 3 }}>

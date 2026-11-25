@@ -167,6 +167,145 @@ const getDashboardAnalytics = async (userId) => {
   };
 };
 
+const getStreakAndHeatmap = async (userId) => {
+  // 1. Get Today and Yesterday from PostgreSQL (to avoid server timezone skew)
+  const dateRefResult = await pool.query(`
+    SELECT
+      TO_CHAR(CURRENT_DATE, 'YYYY-MM-DD') AS today,
+      TO_CHAR(CURRENT_DATE - INTERVAL '1 day', 'YYYY-MM-DD') AS yesterday,
+      TO_CHAR(CURRENT_DATE - INTERVAL '29 days', 'YYYY-MM-DD') AS thirty_days_ago
+  `);
+  const { today, yesterday, thirty_days_ago } = dateRefResult.rows[0];
+
+  // 2. Fetch Daily Activity Heatmap (Last 60 days)
+  const heatmapResult = await pool.query(
+    `
+      SELECT
+        TO_CHAR(d.day, 'YYYY-MM-DD') AS date,
+        TO_CHAR(d.day, 'Dy') AS day_name,
+        COALESCE(SUM(ss.duration_minutes), 0)::integer AS total_minutes,
+        ROUND(COALESCE(SUM(ss.duration_minutes), 0) / 60.0, 1)::float AS total_hours,
+        COUNT(ss.id)::integer AS session_count
+      FROM generate_series(
+        CURRENT_DATE - INTERVAL '59 days',
+        CURRENT_DATE,
+        '1 day'::interval
+      ) AS d(day)
+      LEFT JOIN (
+        SELECT ss_inner.session_date, ss_inner.duration_minutes, ss_inner.id
+        FROM study_sessions ss_inner
+        JOIN topics t ON ss_inner.topic_id = t.id
+        JOIN subjects s ON t.subject_id = s.id
+        WHERE ss_inner.status = 'Completed' AND s.user_id = $1
+      ) ss ON ss.session_date = d.day::date
+      GROUP BY d.day
+      ORDER BY d.day ASC;
+    `,
+    [userId]
+  );
+
+  const heatmap = heatmapResult.rows.map((row) => {
+    const mins = Number(row.total_minutes);
+    let level = 0;
+    if (mins > 0 && mins <= 30) level = 1;
+    else if (mins > 30 && mins <= 60) level = 2;
+    else if (mins > 60 && mins <= 120) level = 3;
+    else if (mins > 120) level = 4;
+
+    return {
+      date: row.date,
+      dayName: row.day_name,
+      totalMinutes: mins,
+      totalHours: Number(row.total_hours),
+      sessionCount: Number(row.session_count),
+      level,
+    };
+  });
+
+  // 3. Fetch all unique historical dates where user completed study sessions
+  const distinctDatesResult = await pool.query(
+    `
+      SELECT DISTINCT TO_CHAR(ss.session_date, 'YYYY-MM-DD') AS session_date
+      FROM study_sessions ss
+      JOIN topics t ON ss.topic_id = t.id
+      JOIN subjects s ON t.subject_id = s.id
+      WHERE ss.status = 'Completed' AND s.user_id = $1
+      ORDER BY session_date DESC;
+    `,
+    [userId]
+  );
+
+  const dateSet = new Set(distinctDatesResult.rows.map((r) => r.session_date));
+  const studiedToday = dateSet.has(today);
+
+  // Helper to step back 1 day in YYYY-MM-DD format using UTC date math
+  const getPreviousDateStr = (dateStr) => {
+    const [y, m, d] = dateStr.split("-").map(Number);
+    const date = new Date(Date.UTC(y, m - 1, d));
+    date.setUTCDate(date.getUTCDate() - 1);
+    return date.toISOString().split("T")[0];
+  };
+
+  // 4. Calculate Current Streak
+  let currentStreak = 0;
+  if (studiedToday) {
+    currentStreak = 1;
+    let checkDate = getPreviousDateStr(today);
+    while (dateSet.has(checkDate)) {
+      currentStreak++;
+      checkDate = getPreviousDateStr(checkDate);
+    }
+  } else if (dateSet.has(yesterday)) {
+    // If not studied yet today, but studied yesterday, the streak is still active
+    currentStreak = 1;
+    let checkDate = getPreviousDateStr(yesterday);
+    while (dateSet.has(checkDate)) {
+      currentStreak++;
+      checkDate = getPreviousDateStr(checkDate);
+    }
+  }
+
+  // 5. Calculate Longest Historical Streak
+  let longestStreak = 0;
+  if (dateSet.size > 0) {
+    const sortedDatesAsc = Array.from(dateSet).sort();
+    let tempStreak = 1;
+    longestStreak = 1;
+
+    for (let i = 1; i < sortedDatesAsc.length; i++) {
+      const prevExpected = getPreviousDateStr(sortedDatesAsc[i]);
+      if (sortedDatesAsc[i - 1] === prevExpected) {
+        tempStreak++;
+      } else {
+        tempStreak = 1;
+      }
+      if (tempStreak > longestStreak) {
+        longestStreak = tempStreak;
+      }
+    }
+    longestStreak = Math.max(longestStreak, currentStreak);
+  }
+
+  // 6. Calculate 30-Day Consistency Percentage
+  let activeInLast30 = 0;
+  for (const dateStr of dateSet) {
+    if (dateStr >= thirty_days_ago && dateStr <= today) {
+      activeInLast30++;
+    }
+  }
+  const consistencyLast30Days = Math.round((activeInLast30 / 30) * 100);
+
+  return {
+    currentStreak,
+    longestStreak,
+    totalActiveDays: dateSet.size,
+    studiedToday,
+    consistencyLast30Days,
+    heatmap,
+  };
+};
+
 module.exports = {
   getDashboardAnalytics,
+  getStreakAndHeatmap,
 };
